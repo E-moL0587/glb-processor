@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import os
+import time
 
 # ファイルから座標データを読み込む関数
 def load_coordinates(filename):
@@ -24,6 +25,7 @@ def generate_voxel_corners(voxel_center, size=1.0):
     corners = []
     shifts = [-half_size, half_size]
 
+    # 8つの頂点を生成
     for dx in shifts:
         for dy in shifts:
             for dz in shifts:
@@ -34,7 +36,7 @@ def generate_voxel_corners(voxel_center, size=1.0):
 # ボクセルが表面かどうかを判定する関数
 def is_surface_voxel(voxel, all_voxels, size=1.0):
     half_size = size / 2
-    # ボクセルの周囲に他のボクセルがあるかどうかを確認する
+    # ボクセルの周囲に他のボクセルがあるかどうかを確認
     for dx in [-half_size, half_size]:
         for dy in [-half_size, half_size]:
             for dz in [-half_size, half_size]:
@@ -70,9 +72,11 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
     ref_min = np.array([0, 0, 0])
     ref_max = np.array([1, 1, 1])
 
-    print(f"{'Res':<8} {'Per(%)':<12} {'Max_dis':<12} {'Mat/Tot':<16}")
-    print("="*50)
+    # 表のヘッダーを表示
+    print(f"{'Res':<8} {'Per(%)':<12} {'Max_dis':<12} {'Matches/Total':<18} {'Time(s)':<15}")
+    print("=" * 65)
 
+    # 解像度ごとに処理を繰り返す
     for res in range(start, end + 1, step):
         voxel_file = f"{folder_path}/voxelCoor_res_{res}.json"
         mesh_file = f"{folder_path}/meshCoor_res_{res}.json"
@@ -85,6 +89,9 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
             voxel_coords_scaled = scale_coordinates(voxel_coords, ref_min, ref_max)
             mesh_coords_scaled = scale_coordinates(mesh_coords, ref_min, ref_max)
 
+            # 時間計測開始
+            start_time = time.time()
+
             # 一致の割合と最大距離を計算
             percentage, max_distance = calculate_percentage_and_max_distance(voxel_coords_scaled, mesh_coords_scaled, threshold, size=voxel_size)
 
@@ -92,11 +99,18 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
             total_surface_voxels = len(voxel_coords_scaled)
             matches = int((percentage / 100) * total_surface_voxels)
 
+            # 計算時間を取得
+            elapsed_time = time.time() - start_time
+
             # 結果を整形して出力
-            print(f"{res:<8} {percentage:<12.2f} {max_distance:<12.4f} {matches}/{total_surface_voxels:<16}")
+            matches_total_str = f"{matches}/{total_surface_voxels}"
+            matches_total_str = matches_total_str.ljust(18)
+
+            print(f"{res:<8} {percentage:<12.2f} {max_distance:<12.4f} {matches_total_str} {elapsed_time:<15.4f}")
         else:
-            print(f"{res:<8} {'-':<12} {'-':<12} {'ファイルが見つかりません':<16}")
+            # ファイルが見つからない場合
+            print(f"{res:<8} {'-':<12} {'-':<12} {'Files not found':<18} {'-':<15}")
 
 folder_path = "coor_res"
-threshold = 0.7  # ボクセルサイズや比較範囲に応じて変更
+threshold = 0.8  # ボクセルサイズや比較範囲に応じて変更
 process_all_files(folder_path, threshold=threshold)
