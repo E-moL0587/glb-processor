@@ -43,10 +43,11 @@ def is_surface_voxel(voxel, all_voxels, size=1.0):
                     return False
     return True  # 周囲にボクセルがなければ表面
 
-# ボクセルとメッシュの一致率を計算する関数
-def calculate_percentage(voxel_coords, mesh_coords, threshold=0.5, size=1.0):
+# ボクセルとメッシュの一致率と最大距離を計算する関数
+def calculate_percentage_and_max_distance(voxel_coords, mesh_coords, threshold=0.5, size=1.0):
     matches = 0
     total_surface_voxels = 0
+    max_distance = 0
 
     for voxel_center in voxel_coords:
         if is_surface_voxel(voxel_center, voxel_coords, size):
@@ -57,14 +58,20 @@ def calculate_percentage(voxel_coords, mesh_coords, threshold=0.5, size=1.0):
                 distances = np.linalg.norm(mesh_coords - corner, axis=1)
                 if np.any(distances <= threshold):
                     matches += 1
+                else:
+                    # 一致しなかった場合の最大距離を更新
+                    max_distance = max(max_distance, np.min(distances))
 
     percentage = (matches / total_surface_voxels) * 100 if total_surface_voxels > 0 else 0
-    return percentage
+    return percentage, max_distance
 
-# 複数のファイルを処理して一致率を計算する関数
+# 複数のファイルを処理して一致率と最大距離を計算する関数
 def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel_size=1.0):
     ref_min = np.array([0, 0, 0])
     ref_max = np.array([1, 1, 1])
+
+    print(f"{'Res':<8} {'Per(%)':<12} {'Max_dis':<12} {'Mat/Tot':<16}")
+    print("="*50)
 
     for res in range(start, end + 1, step):
         voxel_file = f"{folder_path}/voxelCoor_res_{res}.json"
@@ -78,12 +85,18 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
             voxel_coords_scaled = scale_coordinates(voxel_coords, ref_min, ref_max)
             mesh_coords_scaled = scale_coordinates(mesh_coords, ref_min, ref_max)
 
-            # 一致の割合を計算
-            percentage = calculate_percentage(voxel_coords_scaled, mesh_coords_scaled, threshold, size=voxel_size)
-            print(f"Res {res}: 一致した割合: {percentage:.2f}%")
+            # 一致の割合と最大距離を計算
+            percentage, max_distance = calculate_percentage_and_max_distance(voxel_coords_scaled, mesh_coords_scaled, threshold, size=voxel_size)
+
+            # 一致した数と全表面ボクセル数も取得
+            total_surface_voxels = len(voxel_coords_scaled)
+            matches = int((percentage / 100) * total_surface_voxels)
+
+            # 結果を整形して出力
+            print(f"{res:<8} {percentage:<12.2f} {max_distance:<12.4f} {matches}/{total_surface_voxels:<16}")
         else:
-            print(f"Res {res}: ファイルが見つかりません")
+            print(f"{res:<8} {'-':<12} {'-':<12} {'ファイルが見つかりません':<16}")
 
 folder_path = "coor_res"
-threshold = 0.5  # ボクセルサイズや比較範囲に応じて変更
+threshold = 0.7  # ボクセルサイズや比較範囲に応じて変更
 process_all_files(folder_path, threshold=threshold)
