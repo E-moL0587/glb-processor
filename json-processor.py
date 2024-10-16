@@ -67,23 +67,14 @@ def calculate_percentage_and_max_distance(voxel_coords, mesh_coords, threshold=0
     percentage = (matches / total_surface_voxels) * 100 if total_surface_voxels > 0 else 0
     return percentage, max_distance
 
-# ボクセルの体積を計算する関数
-def calculate_total_volume(voxel_coords, size=1.0):
-    return len(voxel_coords) * (size ** 3)
-
-# ボクセルの表面積を計算する関数
-def calculate_total_surface_area(voxel_coords, size=1.0):
-    surface_voxels = [voxel for voxel in voxel_coords if is_surface_voxel(voxel, voxel_coords, size)]
-    return len(surface_voxels) * (size ** 2)
-
 # 複数のファイルを処理して一致率と最大距離を計算する関数
 def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel_size=1.0):
     ref_min = np.array([0, 0, 0])
     ref_max = np.array([1, 1, 1])
 
     # 表のヘッダーを表示
-    print(f"{'Res':<8} {'Per(%)':<12} {'Max_dis':<12} {'Matches/Total':<18} {'Total Vol':<15} {'Total Surf':<15} {'Time(s)':<15}")
-    print("=" * 100)
+    print(f"{'Res':<8} {'Per(%)':<12} {'Max_dis':<12} {'Matches/Total':<18} {'Time(s)':<15}")
+    print("=" * 65)
 
     # 解像度ごとに処理を繰り返す
     for res in range(start, end + 1, step):
@@ -104,10 +95,6 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
             # 一致の割合と最大距離を計算
             percentage, max_distance = calculate_percentage_and_max_distance(voxel_coords_scaled, mesh_coords_scaled, threshold, size=voxel_size)
 
-            # ボクセルの体積と表面積を計算
-            total_volume = calculate_total_volume(voxel_coords_scaled, size=voxel_size)
-            total_surface_area = calculate_total_surface_area(voxel_coords_scaled, size=voxel_size)
-
             # 一致した数と全表面ボクセル数も取得
             total_surface_voxels = len(voxel_coords_scaled)
             matches = int((percentage / 100) * total_surface_voxels)
@@ -119,10 +106,10 @@ def process_all_files(folder_path, start=5, end=50, step=5, threshold=0.5, voxel
             matches_total_str = f"{matches}/{total_surface_voxels}"
             matches_total_str = matches_total_str.ljust(18)
 
-            print(f"{res:<8} {percentage:<12.2f} {max_distance:<12.4f} {matches_total_str} {total_volume:<15} {total_surface_area:<15} {elapsed_time:<15.4f}")
+            print(f"{res:<8} {percentage:<12.2f} {max_distance:<12.4f} {matches_total_str} {elapsed_time:<15.4f}")
         else:
             # ファイルが見つからない場合
-            print(f"{res:<8} {'-':<12} {'-':<12} {'Files not found':<18} {'-':<15} {'-':<15}")
+            print(f"{res:<8} {'-':<12} {'-':<12} {'Files not found':<18} {'-':<15}")
 
 folder_path = "coor_res"
 threshold = 0.8  # ボクセルサイズや比較範囲に応じて変更
